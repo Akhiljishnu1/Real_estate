@@ -21,8 +21,12 @@ glimpse(house_all)
 house_all$BuildingArea<-round(ave(house_all$BuildingArea,house_all$Suburb,house_all$Type,FUN=function(x) 
   ifelse(is.na(x), mean(x,na.rm=TRUE), x)),2)
 
+house_all$BuildingArea[is.nan(house_all$BuildingArea)]=mean(house_all$BuildingArea,na.rm = TRUE)
+
 house_all$Landsize<-round(ave(house_all$Landsize,house_all$Suburb,house_all$Type,FUN=function(x) 
   ifelse(is.na(x), mean(x,na.rm=TRUE), x)),2)
+
+house_all$Landsize[is.nan(house_all$Landsize)]=mean(house_all$Landsize,na.rm = TRUE)
 
 house_all$Bedroom2<-round(ave(house_all$Bedroom2,house_all$Suburb,house_all$Type,FUN=function(x) 
   ifelse(is.na(x), mean(x,na.rm=TRUE), x)),0)
@@ -58,8 +62,31 @@ house_all=CreateDummies(house_all ,"Type")
 
 table(house_all$Method)
 house_all=CreateDummies(house_all ,"Method")
-house_all=CreateDummies(house_all ,"Suburb",freq_cutoff=25)
 
+mean_suburb=round(tapply(house_all$Price,house_all$Suburb,mean,na.rm=T))
+sort(mean_suburb)
+
+house_all=house_all %>% 
+  mutate(surb40_50=as.numeric(Suburb %in% c("Campbellfield","Jacana","Kealba")),
+         surb50_60=as.numeric(Suburb %in% c("Brooklyn","Albion","Sunshine West","Ripponlea","Fawkner","Glenroy")),
+         surb60_70=as.numeric(Suburb %in% c("Southbank","Sunshine North","Keilor Park","Heidelberg West","Reservoir","Braybrook","Kingsbury","Gowanbrae","Hadfield","Watsonia","Footscray","South Kingsville","Balaclava","Melbourne","Maidstone","Sunshine")),
+         surb70_80=as.numeric(Suburb %in% c("Airport West Heidelberg Heights","Pascoe Vale","West Footscray","Altona North","Williamstown North","Brunswick West","Keilor East","Oak Park","Maribyrnong","Altona","Flemington","Coburg North","Yallambie","Avondale Heights","Bellfield")),
+         surb80_90=as.numeric(Suburb %in% c("Strathmore Heights","Glen Huntly","Kensington","Essendon North","St Kilda","Preston","North Melbourne","Coburg","Kingsville","Collingwood","Brunswick East","Gardenvale","Thornbury","Niddrie","West Melbourne","Viewbank")),
+         surb90_100=as.numeric(Suburb %in% c("Spotswood","Carnegie","Elwood","Heidelberg","Moorabbin","Oakleigh","Rosanna","Docklands","Yarraville","Cremorne","Seddon","Brunswick","Oakleigh South","Ascot Vale","Windsor","Caulfield","Essendon West","Newport")),
+         surb100_110=as.numeric(Suburb %in% c("Chadstone","South Yarra","Essendon","Bentleigh East","Murrumbeena","Hughesdale","Fairfield","Ashwood","Clifton Hill","Caulfield North","Abbotsford","Carlton","Prahran","Fitzroy","Ivanhoe","Hampton East","Caulfield East")),
+         surb110_120=as.numeric(Suburb %in% c("Richmond","Travancore","Templestowe Lower","Ormond","Caulfield South","Moonee Ponds","Hawthorn","Box Hill","Bulleen","Burnley","Burwood","Strathmore","Port Melbourne","Fitzroy North","Alphington")),
+         surb120_130=as.numeric(Suburb %in% c("Doncaster","South Melbourne","Northcote","Aberfeldie","Elsternwick","Bentleigh","Kooyong","Parkville")),
+         surb130_140=as.numeric(Suburb %in% c("Williamstown","East Melbourne","Seaholme")),
+         surb140_150=as.numeric(Suburb %in% c("Malvern East","Carlton North","Hawthorn East","Surrey Hills")),
+         surb150_160=as.numeric(Suburb %in% c("Princes Hill","Mont Albert","Armadale","Kew East","Glen Iris","Ashburton")),
+         surb160_170=as.numeric(Suburb %in% c("Brighton East","Eaglemont","Hampton")),
+         surb170_180=as.numeric(Suburb %in% c("Toorak","Ivanhoe East","Camberwell","Balwyn North","Kew")),
+         surb180_190=as.numeric(Suburb %in% c("Brighton","Middle Park")),
+         surb190_200=as.numeric(Suburb %in% c("Balwyn","Albert Park","Malvern")),
+         surb200_222=as.numeric(Suburb %in% c("Canterbury"))) %>% 
+  
+select(-Suburb)
+glimpse(house_all)
 
 View(house_all)
 glimpse(house_all)
@@ -73,6 +100,9 @@ house_all=house_all %>%
 house_all=house_all %>% 
   select(-SellerG)
 
+house_all=house_all %>% 
+  select(-Postcode)
+
 house_train=house_all %>% filter(Data=='Train') %>% select(-Data)
 house_test=house_all %>% filter(Data=='Test') %>% select(-Data,-Price)
 
@@ -83,7 +113,7 @@ house_train2=house_train[-s,]
 
 library(tidyr)
 
-fit=lm(Price~.-Method_S-Postcode,data=house_train1)
+fit=lm(Price~.-Method_S,data=house_train1)
 summary(fit)
 head(house_train1)
 
@@ -96,46 +126,25 @@ summary(fit)
 fit=step(fit)
 formula(fit)
 
-fit=lm(Price ~ Rooms + Distance + Bedroom2 + Bathroom + 
-     Car + Landsize + BuildingArea + Type_u + Type_h + Method_VB + 
-     Method_SP + Method_PI + Suburb_Kingsville + Suburb_CaulfieldNorth + 
-     Suburb_Hughesdale + Suburb_CarltonNorth + Suburb_Southbank + 
-     Suburb_MontAlbert + Suburb_Watsonia + Suburb_HamptonEast + 
-     Suburb_Heidelberg + Suburb_Oakleigh + Suburb_CaulfieldSouth + 
-     Suburb_Fitzroy + Suburb_Braybrook + Suburb_Carlton + Suburb_Canterbury + 
-     Suburb_Chadstone + Suburb_CliftonHill + Suburb_Flemington + 
-     Suburb_KewEast + Suburb_AlbertPark + Suburb_BoxHill + Suburb_Seddon + 
-     Suburb_Ashwood + Suburb_Elsternwick + Suburb_Collingwood + 
-     Suburb_Altona + Suburb_Hadfield + Suburb_Abbotsford + Suburb_HeidelbergWest + 
-     Suburb_NorthMelbourne + Suburb_OakleighSouth + Suburb_CoburgNorth + 
-     Suburb_Murrumbeena + Suburb_HeidelbergHeights + Suburb_Malvern + 
-     Suburb_Moorabbin + Suburb_SouthMelbourne + Suburb_Ashburton + 
-     Suburb_BrunswickEast + Suburb_Maidstone + Suburb_FitzroyNorth + 
-     Suburb_Ormond + Suburb_SunshineNorth + Suburb_WestFootscray + 
-     Suburb_AvondaleHeights + Suburb_Fawkner + Suburb_AltonaNorth + 
-     Suburb_Armadale + Suburb_Burwood + Suburb_Williamstown + 
-     Suburb_Melbourne + Suburb_SunshineWest + Suburb_TemplestoweLower + 
-     Suburb_BrunswickWest + Suburb_KeilorEast + Suburb_HawthornEast + 
-     Suburb_SurreyHills + Suburb_Kensington + Suburb_Toorak + 
-     Suburb_Elwood + Suburb_Maribyrnong + Suburb_Newport + Suburb_Doncaster + 
-     Suburb_AscotVale + Suburb_Footscray + Suburb_Thornbury + 
-     Suburb_Hampton + Suburb_Yarraville + Suburb_Balwyn + Suburb_MalvernEast + 
-     Suburb_Camberwell + Suburb_Carnegie + Suburb_Bentleigh + 
-     Suburb_PascoeVale + Suburb_BrightonEast + Suburb_Hawthorn + 
-     Suburb_BalwynNorth + Suburb_Coburg + Suburb_Kew + Suburb_Brighton + 
-     Suburb_GlenIris + Suburb_Brunswick + Suburb_StKilda + Suburb_Preston + 
-     Suburb_Richmond + Suburb_BentleighEast + Suburb_Reservoir, 
-   data = house_train1)
+fit=lm(Price ~ Rooms + Distance + Bedroom2 + Bathroom + Car + Landsize + 
+         BuildingArea + Type_u + Type_h + Method_VB + Method_SP + 
+         Method_PI + surb40_50 + surb50_60 + surb80_90 + surb90_100 + 
+         surb100_110 + surb110_120 + surb120_130 + surb130_140 + surb140_150 + 
+         surb150_160 + surb160_170 + surb170_180 + surb180_190 + surb190_200 + 
+         surb200_222,data = house_train1)
 
 
 val.pred=predict(fit,newdata=house_train2)
+sum(is.nan(val.pred))
 
 errors=house_train2$Price-val.pred
 
 errors**2
 
 
-errors**2 %>% na.omit(a) %>% mean() %>% sqrt()
+errors**2 %>% mean() %>% sqrt()
 
 val.predActual=predict(fit,newdata=house_test)
 val.predActual
+
+write.csv(val.predActual,"real_estate_output11.csv",row.names = F)
